@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Dashboard de monitoreo en tiempo real para el servidor EVEA - Simulador de saturación con análisis predictivo IA">
+    <title>EVEA Server Dashboard — Centro de Monitoreo</title>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥️</text></svg>">
+</head>
+<body>
+<div class="app-container">
+
+    <!-- ════════════════════ HEADER ════════════════════ -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon">🖥️</div>
+                <div>
+                    <div class="logo-text">EVEA Dashboard</div>
+                    <div class="logo-sub">Centro de Monitoreo de Red</div>
+                </div>
+            </div>
+        </div>
+        <div class="header-center">
+            <div id="statusBadge" class="status-badge normal">
+                <span class="status-dot"></span> OPERATIVO
+            </div>
+            <div id="intervalCounter" class="interval-counter">Intervalo #0</div>
+        </div>
+        <div class="header-right">
+            <div id="clock" class="clock">--:--:--</div>
+        </div>
+    </header>
+
+    <!-- ════════════════════ MAIN CONTENT ════════════════════ -->
+    <main class="main-content">
+
+        <!-- Controls Bar -->
+        <div class="controls-bar">
+            <button id="btnSimular" class="btn btn-primary">⚡ Simular Paso</button>
+            <button id="btnRegistrar" class="btn btn-success">➕ Registrar Usuario</button>
+            <div class="controls-separator"></div>
+            <button id="btnAuto" class="btn btn-auto">▶ Auto-Simular</button>
+            <div class="auto-speed">
+                <span>Velocidad:</span>
+                <select id="autoSpeed">
+                    <option value="1000">1s</option>
+                    <option value="2000">2s</option>
+                    <option value="3000" selected>3s</option>
+                    <option value="5000">5s</option>
+                </select>
+            </div>
+            <div class="controls-separator"></div>
+            <button id="btnReset" class="btn btn-danger">↺ Reiniciar</button>
+            <div style="flex:1"></div>
+            <div style="font-size: 0.68rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">
+                Espacio = Simular | Esc = Cerrar
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div id="kpi-conn" class="kpi-card cyan">
+                <div class="kpi-header">
+                    <span class="kpi-label">Conexiones</span>
+                    <span class="kpi-icon">🔗</span>
+                </div>
+                <div class="kpi-value">0</div>
+                <div class="kpi-sub">0 / 5</div>
+                <div class="kpi-bar"><div class="kpi-bar-fill" style="width: 0%"></div></div>
+            </div>
+            <div id="kpi-cola" class="kpi-card amber">
+                <div class="kpi-header">
+                    <span class="kpi-label">Cola de Espera</span>
+                    <span class="kpi-icon">📋</span>
+                </div>
+                <div class="kpi-value">0</div>
+                <div class="kpi-sub">0 / 8</div>
+                <div class="kpi-bar"><div class="kpi-bar-fill" style="width: 0%"></div></div>
+            </div>
+            <div id="kpi-banda" class="kpi-card purple">
+                <div class="kpi-header">
+                    <span class="kpi-label">Ancho de Banda</span>
+                    <span class="kpi-icon">📡</span>
+                </div>
+                <div class="kpi-value">0</div>
+                <div class="kpi-sub">0 / 100 Mbps</div>
+                <div class="kpi-bar"><div class="kpi-bar-fill" style="width: 0%"></div></div>
+            </div>
+            <div id="kpi-alm" class="kpi-card blue">
+                <div class="kpi-header">
+                    <span class="kpi-label">Almacenamiento</span>
+                    <span class="kpi-icon">💾</span>
+                </div>
+                <div class="kpi-value">0</div>
+                <div class="kpi-sub">0 / 2 GB</div>
+                <div class="kpi-bar"><div class="kpi-bar-fill" style="width: 0%"></div></div>
+            </div>
+            <div id="kpi-atend" class="kpi-card green">
+                <div class="kpi-header">
+                    <span class="kpi-label">Atendidos</span>
+                    <span class="kpi-icon">✅</span>
+                </div>
+                <div class="kpi-value">0</div>
+                <div class="kpi-sub">de 0 totales</div>
+                <div class="kpi-bar"><div class="kpi-bar-fill" style="width: 0%"></div></div>
+            </div>
+            <div id="kpi-rech" class="kpi-card red">
+                <div class="kpi-header">
+                    <span class="kpi-label">Rechazados</span>
+                    <span class="kpi-icon">🚫</span>
+                </div>
+                <div class="kpi-value">0</div>
+                <div class="kpi-sub">0 alertas</div>
+                <div class="kpi-bar"><div class="kpi-bar-fill" style="width: 0%"></div></div>
+            </div>
+        </div>
+
+        <!-- Dashboard Grid: Charts + Side Panel -->
+        <div class="dashboard-grid">
+            <!-- Charts Column -->
+            <div class="charts-column">
+                <!-- Usage Chart (full width) -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><span class="card-title-icon">📈</span> Uso del Servidor en Tiempo Real</span>
+                        <span class="card-badge" style="background: var(--cyan-dim); color: var(--cyan);">LIVE</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container chart-container-large">
+                            <canvas id="usageChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Two charts side by side -->
+                <div class="charts-row">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><span class="card-title-icon">📊</span> Cola y Rechazados</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="queueChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><span class="card-title-icon">🍩</span> Distribución de Estados</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="stateChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side Column -->
+            <div class="side-column">
+                <!-- AI Prediction Panel -->
+                <div class="card ai-panel">
+                    <div class="card-header">
+                        <span class="card-title"><span class="card-title-icon">🧠</span> Análisis Predictivo IA</span>
+                        <span class="card-badge" style="background: var(--purple-dim); color: var(--purple);">AI</span>
+                    </div>
+                    <div class="card-body" id="aiPanelBody">
+                        <div class="ai-msg info">⏳ Simulando... Se necesitan más datos para generar predicciones.</div>
+                    </div>
+                </div>
+
+                <!-- Prediction Chart -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title"><span class="card-title-icon">🔮</span> Proyección de Saturación</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="predictionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event Log -->
+                <div class="card" style="flex: 1;">
+                    <div class="card-header">
+                        <span class="card-title"><span class="card-title-icon">📜</span> Log de Eventos</span>
+                    </div>
+                    <div class="card-body" style="padding: 0.5rem;">
+                        <div id="eventLog" class="event-log">
+                            <div class="log-entry">Esperando conexión con el servidor...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Row: Users Table + Truth Table + Report -->
+        <div class="bottom-row">
+            <!-- Users Table -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><span class="card-title-icon">👥</span> Usuarios Registrados</span>
+                    <span id="usersCount" class="card-badge" style="background: var(--blue-dim); color: var(--blue);">0</span>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div class="users-table-container">
+                        <table class="users-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Archivo</th>
+                                    <th>Estado</th>
+                                    <th>T.Esp</th>
+                                    <th>T.Carga</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <tr><td colspan="6" style="text-align:center; color: var(--text-dim); padding: 2rem;">Cargando datos...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Truth Table -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><span class="card-title-icon">🔀</span> Tabla de Verdad</span>
+                </div>
+                <div class="card-body">
+                    <div style="font-size: 0.68rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                        P: Conexiones al máximo | Q: Cola llena
+                    </div>
+                    <table class="truth-table">
+                        <thead>
+                            <tr>
+                                <th>P</th>
+                                <th>Q</th>
+                                <th>P ∧ Q</th>
+                                <th>P ∧ ¬Q</th>
+                                <th>Decisión</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="val-false">F</td>
+                                <td class="val-false">F</td>
+                                <td class="val-false">F</td>
+                                <td class="val-false">F</td>
+                                <td class="decision-admitir">ADMITIR</td>
+                            </tr>
+                            <tr>
+                                <td class="val-false">F</td>
+                                <td class="val-true">V</td>
+                                <td class="val-false">F</td>
+                                <td class="val-false">F</td>
+                                <td class="decision-admitir">ADMITIR</td>
+                            </tr>
+                            <tr>
+                                <td class="val-true">V</td>
+                                <td class="val-false">F</td>
+                                <td class="val-false">F</td>
+                                <td class="val-true">V</td>
+                                <td class="decision-cola">EN COLA</td>
+                            </tr>
+                            <tr>
+                                <td class="val-true">V</td>
+                                <td class="val-true">V</td>
+                                <td class="val-true">V</td>
+                                <td class="val-false">F</td>
+                                <td class="decision-rechazar">RECHAZAR</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div id="truthCurrentState" style="margin-top: 0.7rem; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; color: var(--text-secondary); padding: 0.5rem; background: var(--bg-primary); border-radius: var(--radius-sm);">
+                        Estado: Cargando...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Math Report Summary -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><span class="card-title-icon">📐</span> Reporte Matemático</span>
+                </div>
+                <div class="card-body" id="mathReport" style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-secondary); line-height: 2;">
+                    Cargando datos...
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- ════════════════════ REGISTER MODAL ════════════════════ -->
+<div id="registerModal" class="modal-overlay">
+    <div class="modal">
+        <h3>➕ Registrar Nuevo Usuario</h3>
+        <div class="form-group">
+            <label for="regNombre">Nombre del Estudiante</label>
+            <input type="text" id="regNombre" placeholder="Ej: Laura Mendez" autocomplete="off">
+        </div>
+        <div class="form-group">
+            <label for="regTamano">Tamaño del Archivo (MB)</label>
+            <input type="number" id="regTamano" placeholder="0.1 - 100" min="0.1" max="100" step="0.1">
+        </div>
+        <div class="modal-actions">
+            <button id="btnRegCancel" class="btn">Cancelar</button>
+            <button id="btnRegSubmit" class="btn btn-success">Registrar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- External Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/ai-predictor.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
